@@ -1,4 +1,4 @@
--- Default information for the departments table
+
 INSERT INTO departments (name)
     VALUES
         ('Management'),
@@ -10,7 +10,7 @@ INSERT INTO departments (name)
         ('Parts'),
         ('BDC');
 
--- Default information for the roles table
+
 
 INSERT INTO roles (title, salary, department_id)
     VALUES 
@@ -24,9 +24,9 @@ INSERT INTO roles (title, salary, department_id)
         ('BDC Clerk', 50000, 8);
 
 
--- Default information for the Employees table
 
-INSERT INTO employees (first_name, last_name, role_id, manager_id)
+
+INSERT INTO employees (first_name, last_name, roles_id, manager_id)
     VALUES  
         ('Brandon', 'Elliott', 1, 1),
         ('Dani', 'Ribiero', 2, 2),

@@ -1,70 +1,88 @@
 // Brings in inquirer
 const inquirer = require('inquirer');
 const logo = require('asciiart-logo')
-const mysql = require("mysql2")
+const query = require("./config/connection")
 
-const db = mysql.createConnection({
-    host: 'localhost',
-    database: 'mycompany_db',
-    user: 'root',
-    password: 'Weather Enough Dark!'
-})
+
 
 const viewDepartments =  () => {
-   db.query('SELECT * FROM departments', (err, result) => {
+   query('SELECT * FROM departments', (err, result) => {
     if (err) {
       console.error(err);
     }else {
-        console.log(result)
+        console.table(result)
+        initialPrompt()
     }
     
   });
-  console.log('now viewing departments');
+  
 };
 
 const viewRoles = () => {
-     db.query('SELECT * FROM roles', (err, result) => {
+     query('SELECT * FROM roles', (err, result) => {
         if(err) {
             console.error(err)
         } else {
-            console.log(result)
+            console.table(result)
+            initialPrompt()
         }
         
     })
    
 }
+
 const viewEmployees = () => {
-     db.query('SELECT * FROM employees', (err, result) => {
+    query('SELECT * FROM employees', (err, result) => {
         if(err) {
             console.error(err)
+        } else {
+            console.table(result)
+            initialPrompt()
         }
        
     })
     console.log("Now viewing all company employees.")
 }
+
+const renderDepartmentChoices = async () => {
+const departments = await query('SELECT name, id FROM departments')
+   return departments.map(({name, id}) => {
+    return {
+        name,
+        value: id,
+    }
+   })
+}
+
 const newDepartment = async () => {
     const {department} = await inquirer.prompt([
         {
             message: "What is the name of the new department",
-            name: "department"
+            type: 'list',
+            name: "department",
+            choices: [
+                renderDepartmentChoices()
+            ]
         }
     ])
-    db.query('INSERT INTO departments (name) VALUES (?)', department, (err, result)=>{
-        if(err) console.error(err)
+    query('INSERT INTO departments (name) VALUES (?)', department, (err, result)=>{
+        if(err) {console.error(err)
+        }else {  console.table(viewDepartments())
+            initialPrompt()
+        }
         
-        initialPrompt()
     })
-  
+    
+    
 }
 
-const renderDepartmentChoices = () => {
-    db.query('SELECT * FROM departments', (err, result)=> {
-        if(err) {
-            console.error(err)
-        }else {
-            return result.map((r) =>{ 
-                return {name: r.name, value: r.id};
-            })
+
+const renderRoleChoices = async () => {
+    const roles = await query('SELECT name, id, FROM roles')
+    return roles.map(({name, id}) => {
+        return {
+            name,
+            value: id,
         }
     })
 }
@@ -85,21 +103,18 @@ const newRole = async () => {
         message: 'What department is the new role for?',
         type: 'list',
         name: 'departmentId',
-        choices: renderDepartmentChoices(),
+        choices: await renderRoleChoices(),
     }
-   ])
+])
 
-   db.query(
-    'INSERT INTO roles (title, salary) VALUES (?, ?)',
-    [title, salary],
-   (err) => {
-    if(err) {console.error(err)
-   } else {
-    console.log("Role added successfully")
-   }
-   
-})
-}
+ await query(
+    'INSERT INTO roles (title, salary, department_id) VALUES (?,?,?)',
+    [title, salary, departmentId]
+ );
+    viewRoles()
+ }
+
+
 const newEmployee = async () => {
     const {firstName, lastName, roleId, managerId} = await inquirer.prompt([
         {
@@ -119,7 +134,7 @@ const newEmployee = async () => {
             name: 'managerId'
         }
     ])
-    db.query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)', [firstName, lastName, roleId, managerId], (err, result)=>{
+    query('INSERT INTO employees (first_name, last_name, role_id, manager_id) VALUES (?,?,?,?)', [firstName, lastName, roleId, managerId], (err, result)=>{
         if(err) console.error(err)
     })
 }
@@ -142,9 +157,11 @@ const choiceMap = {
     quit
 }
 
-const handleChoice = (choices) => {
-    choiceMap[choices]()
-     initialPrompt()
+const handleChoice = async (choices) => {
+   await choiceMap[choices]()
+    if(choices !== 'quit') {
+        initialPrompt()
+    }
 }
 
 const initialPrompt = async () => {
@@ -189,7 +206,7 @@ const initialPrompt = async () => {
         ]
     }
 ])
-    handleChoice([response.userChoice])
+handleChoice(response.userChoice)
 }
 
 console.log(logo({name: "Employee Tracker"}).render())
