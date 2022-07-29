@@ -2,6 +2,7 @@
 const util = require("util");
 const mysql = require("mysql2");
 
+// connects to the .env file using the dotenv package that is brought into the application in the index.js file.
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
