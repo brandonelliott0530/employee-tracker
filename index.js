@@ -6,7 +6,6 @@ const inquirer = require("inquirer");
 const logo = require("asciiart-logo");
 // Brings in the config file that sets up the connection to mysql
 const query = require("./config/connection");
-console.log(query);
 
 // Function to view all departments in the database
 const viewDepartments = () => {
@@ -42,7 +41,19 @@ const viewEmployees = () => {
       initialPrompt();
     }
   });
-  console.log("Now viewing all company employees.");
+};
+
+// Function that retuns all employees in the database for updating their role in the company
+const getEmployees = async () => {
+  const employee = await query(
+    "SELECT first_name, last_name, id FROM employees"
+  );
+  return employee.map((employee) => {
+    return {
+      name: `${employee.first_name} ${employee.last_name}`,
+      value: employee.id,
+    };
+  });
 };
 
 // Function to render the departmets as choices in inquirer
@@ -61,9 +72,7 @@ const newDepartment = async () => {
   const { department } = await inquirer.prompt([
     {
       message: "What is the name of the new department",
-      type: "list",
       name: "department",
-      choices: await [renderDepartmentChoices()],
     },
   ]);
   query(
@@ -73,7 +82,7 @@ const newDepartment = async () => {
       if (err) {
         console.error(err);
       } else {
-        console.table(viewDepartments());
+        viewDepartments();
         initialPrompt();
       }
     }
@@ -81,15 +90,15 @@ const newDepartment = async () => {
 };
 
 // Function to render the roles as choices in inquirer.
-// const renderRoleChoices = async () => {
-//   const roles = await query("SELECT title FROM roles");
-//   return roles.map(({ title, id }) => {
-//     return {
-//       title,
-//       value: id,
-//     };
-//   });
-// };
+const renderRoleChoices = async () => {
+  const roles = await query("SELECT title, id FROM roles");
+  return roles.map(({ id, title }) => {
+    return {
+      value: id,
+      name: title,
+    };
+  });
+};
 
 // function for adding a new role to the database
 const newRole = async () => {
@@ -106,7 +115,7 @@ const newRole = async () => {
       message: "What department is the new role for?",
       type: "list",
       name: "departmentId",
-      choices: await [renderDepartmentChoices()],
+      choices: await renderDepartmentChoices(),
     },
   ]);
 
@@ -131,10 +140,14 @@ const newEmployee = async () => {
     {
       message: "What is the role id for the new employee?",
       name: "roleId",
+      type: "list",
+      choices: await renderRoleChoices(),
     },
     {
-      message: "What is the manager id for the new employee?",
+      message: "Who is the manager of the new employee?",
       name: "managerId",
+      type: "list",
+      choices: await getEmployees(),
     },
   ]);
   query(
@@ -144,9 +157,34 @@ const newEmployee = async () => {
       if (err) console.error(err);
     }
   );
+  viewEmployees();
 };
-const updateRole = () => {
-  console.log("Updating role of selected employee.");
+
+// Function to update the role of an employee
+const updateRole = async () => {
+  const { employee_id, roles_id } = await inquirer.prompt([
+    {
+      type: "list",
+      message: "Which employee do you want to update?",
+      name: "employee_id",
+      choices: await getEmployees(),
+    },
+    {
+      type: "list",
+      message: "Which new role do you want to give to the employee?",
+      name: "roles_id",
+      choices: await renderRoleChoices(),
+    },
+  ]);
+  try {
+    await query("UPDATE employees SET roles_id = ? WHERE id = ? ", [
+      roles_id,
+      employee_id,
+    ]);
+    console.table(viewEmployees());
+  } catch (err) {
+    console.log(err);
+  }
 };
 // function to quit the program
 const quit = () => {
@@ -168,13 +206,13 @@ const choiceMap = {
 };
 
 const handleChoice = async (choices) => {
-  console.log("Handling choices");
   await choiceMap[choices]();
   if (choices !== "quit") {
     initialPrompt();
   }
 };
 
+// Function that presents the initial prompt to the user.
 const initialPrompt = async () => {
   const response = await inquirer.prompt([
     {
@@ -217,7 +255,6 @@ const initialPrompt = async () => {
       ],
     },
   ]);
-  console.log(response);
 
   handleChoice(response.userChoice);
 };
