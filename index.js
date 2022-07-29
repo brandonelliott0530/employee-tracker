@@ -1,3 +1,4 @@
+require("events").EventEmitter.defaultMaxListeners = 1000;
 require("dotenv").config();
 
 // Brings in inquirer
@@ -14,7 +15,6 @@ const viewDepartments = () => {
       console.error(err);
     } else {
       console.table(result);
-      initialPrompt();
     }
   });
 };
@@ -26,7 +26,6 @@ const viewRoles = () => {
       console.error(err);
     } else {
       console.table(result);
-      initialPrompt();
     }
   });
 };
@@ -38,7 +37,6 @@ const viewEmployees = () => {
       console.error(err);
     } else {
       console.table(result);
-      initialPrompt();
     }
   });
 };
@@ -75,18 +73,8 @@ const newDepartment = async () => {
       name: "department",
     },
   ]);
-  query(
-    "INSERT INTO departments (name) VALUES (?)",
-    department,
-    (err, result) => {
-      if (err) {
-        console.error(err);
-      } else {
-        viewDepartments();
-        initialPrompt();
-      }
-    }
-  );
+  await query("INSERT INTO departments (name) VALUES (?)", department);
+  viewDepartments();
 };
 
 // Function to render the roles as choices in inquirer.
@@ -259,9 +247,5 @@ const initialPrompt = async () => {
   handleChoice(response.userChoice);
 };
 
-function init() {
-  console.log(logo({ name: "Employee Tracker" }).render());
-  initialPrompt();
-}
-
-init();
+console.log(logo({ name: "Employee Tracker" }).render());
+initialPrompt();
